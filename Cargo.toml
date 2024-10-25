@@ -1,0 +1,12 @@
+[package]
+name = "webby"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+base64 = "0.22.1"
+boml = "0.3.1"
+
+[features]
+default = []
+log = []
