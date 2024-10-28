@@ -59,6 +59,8 @@ pub fn minify_html(
 ///    Whitespace that isn't in a tag property's value will also be stripped.
 ///    Any nested tags inside that content tag will be re-run through this
 ///    minifier.
+/// 8. If the tag is a <![CDATA[]]> tag, it will not be minimised. Content
+///    should be explicitly minimised with the #!MINIMISE macro.
 ///
 /// # TODO
 /// - Find a decent JS minifier, add it as a dep, and feature flag it. JS is
@@ -136,6 +138,16 @@ fn handle_tag<'a>(
 
     let tag_name = &source[1..tag_name_end];
     log!("Parsing tag `{tag_name}`");
+
+    if tag_name == "![CDATA[" {
+        let Some(end) = source[tag_name_end..].find("]]>") else {
+            return Err(Cow::Owned(format!(
+                "Unclosed CDATA tag at {source_path:?}{}",
+                line_number_of_offset(error_meta.0, error_meta.1 + tag_name_end)
+            )));
+        };
+        return Ok((Cow::Borrowed(&source[..end + "]]>".len()]), end));
+    }
 
     if tag_closed {
         log!("  Opening tag closed w/o properties");

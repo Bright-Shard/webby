@@ -12,10 +12,18 @@ pub enum Mode {
     Link,
 }
 
+pub enum FileType {
+    Html,
+    Css,
+    Gemtext,
+    Unknown,
+}
+
 pub struct Target {
     pub path: PathBuf,
     pub output: PathBuf,
     pub mode: Mode,
+    pub file_type: FileType,
 }
 
 pub fn build_target(target: Target) -> Result<(), Cow<'static>> {
@@ -42,20 +50,20 @@ pub fn build_target(target: Target) -> Result<(), Cow<'static>> {
                     &target.path
                 )
             });
-            let compiled_macros = compiler::compile_macros(&original, &target.path);
+            let compiled_macros = compiler::compile_macros(&original, &target.path)?;
 
-            let output = match target.path.extension().and_then(|val| val.to_str()) {
-                Some("gmi") => Cow::Owned(translator::translate_gemtext(
+            let output = match target.file_type {
+                FileType::Gemtext => Cow::Owned(translator::translate_gemtext(
                     &target.path,
                     compiled_macros.as_ref(),
                 )?),
-                Some("html") => Cow::Owned(minifier::minify_html(
+                FileType::Html => Cow::Owned(minifier::minify_html(
                     target.path.to_str().unwrap(),
                     &compiled_macros,
                     &original,
                 )?),
-                Some("css") => Cow::Owned(minifier::minify_css(&compiled_macros)),
-                _ => compiled_macros,
+                FileType::Css => Cow::Owned(minifier::minify_css(&compiled_macros)),
+                FileType::Unknown => compiled_macros,
             };
 
             fs::write(&target.output, output.as_ref())

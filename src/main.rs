@@ -1,7 +1,7 @@
 use {
     boml::{table::TomlGetError, Toml},
     std::{borrow::Cow, env, fs, thread},
-    webby::{build_target, Mode, Target},
+    webby::{build_target, FileType, Mode, Target},
 };
 
 pub fn main() -> Result<(), Cow<'static, str>> {
@@ -72,8 +72,28 @@ pub fn main() -> Result<(), Cow<'static, str>> {
                 } else {
                     output_dir.join(path.file_name().unwrap())
                 };
+                let file_type = if let Ok(file_type) = table.get_string("filetype") {
+                    match file_type {
+                        "html" => FileType::Html,
+                        "css" => FileType::Css,
+                        "gemtext" => FileType::Gemtext,
+                        _ => return Err(Cow::Owned(format!("Target `{path:?}` had an unexpected filetype: {file_type}\n`filetype` must be one of html, css, or gemtext")))
+                    }
+                } else {
+                    match path.extension().and_then(|str| str.to_str()) {
+                        Some("html") => FileType::Html,
+                        Some("css") => FileType::Css,
+                        Some("gmi") | Some("gemtext") => FileType::Gemtext,
+                        _ => FileType::Unknown,
+                    }
+                };
 
-                let target = Target { path, output, mode };
+                let target = Target {
+                    path,
+                    output,
+                    mode,
+                    file_type,
+                };
                 let worker = thread::spawn(move || build_target(target));
                 tasks.push(worker);
             }

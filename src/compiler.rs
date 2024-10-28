@@ -1,10 +1,10 @@
 use {
-    crate::{line_number_of_offset, Cow},
+    crate::{line_number_of_offset, minifier, Cow},
     base64::{engine::general_purpose::STANDARD, Engine},
     std::{fs, path::Path},
 };
 
-pub fn compile_macros<'a>(original: &'a str, source_path: &'a Path) -> Cow<'a> {
+pub fn compile_macros<'a>(original: &'a str, source_path: &'a Path) -> Result<Cow<'a>, String> {
     let mut output = String::default();
     let mut offset = 0;
 
@@ -26,25 +26,37 @@ pub fn compile_macros<'a>(original: &'a str, source_path: &'a Path) -> Cow<'a> {
         offset += start_idx;
 
         let macro_src = &original[offset..];
-        let paren_open = macro_src.find('(').unwrap_or_else(|| {
-            panic!(
+        let Some(paren_open) = macro_src.find('(') else {
+            return Err(format!(
                 "Expected ( in macro invocation at {source_path:?}:{}",
                 line_number_of_offset(original, offset)
-            )
-        });
-        let mut paren_close = macro_src.find(')').unwrap_or_else(|| {
-            panic!(
-                "Expected ) to end macro invocation at {source_path:?}:{}",
-                line_number_of_offset(original, offset)
-            )
-        });
-        while macro_src.as_bytes().get(paren_close + 1).copied() == Some(b')') {
-            paren_close += 1;
+            ));
+        };
+        let mut paren_depth = 0u8;
+        let mut bytes = macro_src[paren_open..].bytes().enumerate();
+        let paren_close: usize;
+        loop {
+            let Some((idx, byte)) = bytes.next() else {
+                return Err(format!(
+                    "Expected ) to end macro invocation at {source_path:?}:{}",
+                    line_number_of_offset(original, offset)
+                ));
+            };
+
+            if byte == b'(' {
+                paren_depth += 1;
+            } else if byte == b')' {
+                paren_depth -= 1;
+                if paren_depth == 0 {
+                    paren_close = idx + paren_open;
+                    break;
+                }
+            }
         }
 
         let macro_name = &macro_src[2..paren_open];
         let macro_args = &macro_src[paren_open + 1..paren_close];
-        let macro_args = compile_macros(macro_args, source_path);
+        let macro_args = compile_macros(macro_args, source_path)?;
         let macro_args = macro_args.as_ref();
 
         match macro_name {
@@ -56,7 +68,7 @@ pub fn compile_macros<'a>(original: &'a str, source_path: &'a Path) -> Cow<'a> {
                         line_number_of_offset(original, offset)
                     )
                 });
-                let compiled = compile_macros(&src, &path);
+                let compiled = compile_macros(&src, &path)?;
                 output += compiled.as_ref();
             }
             "BASE64" => {
@@ -72,20 +84,34 @@ pub fn compile_macros<'a>(original: &'a str, source_path: &'a Path) -> Cow<'a> {
                 });
                 output += STANDARD.encode(&src).as_str();
             }
-            other => panic!(
-                "Unknown macro '{other}' in macro invocation at {source_path:?}:{}",
-                line_number_of_offset(original, offset)
-            ),
+            "MINIFY" => {
+                let mut split = macro_args.split(',');
+                let Some(file_type) = split.next() else {
+                    return Err(format!("Expected two arguments (file type and code) in {macro_name} at {source_path:?}:{}", line_number_of_offset(original, offset)));
+                };
+                let remaining = &macro_args[file_type.len() + 1..];
+                match file_type {
+                    "html" => output += &minifier::minify_html(source_path.to_str().unwrap(), remaining, original)?,
+                    "css" => output += &minifier::minify_css(remaining),
+                    _ => return Err(format!("Unknown file type given in {macro_name} macro at {source_path:?}:{} - file type was `{file_type}`, but can only be html or css", line_number_of_offset(original, offset)))
+                }
+            }
+            other => {
+                return Err(format!(
+                    "Unknown macro '{other}' in macro invocation at {source_path:?}:{}",
+                    line_number_of_offset(original, offset)
+                ))
+            }
         }
 
         offset += paren_close + 1;
     }
 
     if output.is_empty() {
-        Cow::Borrowed(original)
+        Ok(Cow::Borrowed(original))
     } else {
         output += &original[offset..];
-        Cow::Owned(output)
+        Ok(Cow::Owned(output))
     }
 }
 

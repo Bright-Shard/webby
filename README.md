@@ -24,6 +24,7 @@ Macros can be combined, like this:
 
 - `#!INCLUDE(path/to/file)`: Webby will compile the given file, then embed it at the macro's location. The file must contain valid UTF-8 text.
 - `#!BASE64(text)`: Base64-encode the given text.
+- `#!MINIFY(format, text)`: Run `text` through the minifier for `format`. For example, `#!MINIMISE(html, <body>    <p  >hello!</p></body>)` will output `<body><p>hello!</p></body>`.
 - `#!INCLUDE_BASE64(path/to/file)`: Base64-encode the given file. This differs from `#!BASE64(#!INCLUDE(path/to/file))` because it can also base64-encode binary files.
 
 # minifiers
@@ -87,6 +88,12 @@ output = "file.out.html"
 # If this isn't specified, webby will infer if it should compile or copy the
 # file based on the file's ending.
 mode = "compile"
+# (Optional) Override the file type
+# By default webby will treat files differently based on their file type. Files
+# ending in .html will be run through the HTML minifier, while files ending in
+# .css will be run through the CSS minifier. This setting will make webby treat
+# the file as what's given here instead of the file's file extension.
+filetype = "html"
 ```
 
 # todo
@@ -101,3 +108,4 @@ mode = "compile"
 - [x] Gemtext translator
 - [ ] Markdown translator
 - [ ] Redo macro compiler... it's old and has bugs
+- [ ] Replace any instances of `panic!()` with returning an error string
