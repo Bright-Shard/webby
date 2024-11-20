@@ -573,9 +573,14 @@ mod tests {
                 expected: "<body><p>hi</p></body>",
             },
             Tester {
-                name: "Includes whitespace in textual comments",
+                name: "Minimises whitespace in textual tags",
                 source: "<p> This has   weird whitespace!!!\n</p>",
-                expected: "<p> This has   weird whitespace!!!\n</p>",
+                expected: "<p> This has weird whitespace!!!</p>",
+            },
+            Tester {
+                name: "Includes whitespace in preformatted tags",
+                source: "<pre> This has   weird whitespace!!!\n</pre>",
+                expected: "<pre> This has   weird whitespace!!!\n</pre>",
             },
             Tester {
                 name: "Element properties",
