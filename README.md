@@ -106,6 +106,6 @@ filetype = "html"
 - [x] CSS minifier
 - [ ] JS minifier
 - [x] Gemtext translator
-- [ ] Markdown translator
+- [x] Markdown translator
 - [ ] Redo macro compiler... it's old and has bugs
 - [ ] Replace any instances of `panic!()` with returning an error string

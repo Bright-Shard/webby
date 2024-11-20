@@ -16,6 +16,7 @@ pub enum FileType {
     Html,
     Css,
     Gemtext,
+    Markdown,
     Unknown,
 }
 
@@ -63,6 +64,7 @@ pub fn build_target(target: Target) -> Result<(), Cow<'static>> {
                     &original,
                 )?),
                 FileType::Css => Cow::Owned(minifier::minify_css(&compiled_macros)),
+                FileType::Markdown => Cow::Owned(translator::translate_markdown(&compiled_macros)),
                 FileType::Unknown => compiled_macros,
             };
 

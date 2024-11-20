@@ -15,9 +15,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85fdb93f04c73bff54305fa437ffea5449c41edcaadfe882f35836206b166ac5"
 
 [[package]]
+name = "markdown"
+version = "1.0.0-alpha.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6491e6c702bf7e3b24e769d800746d5f2c06a6c6a2db7992612e0f429029e81"
+dependencies = [
+ "unicode-id",
+]
+
+[[package]]
+name = "unicode-id"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10103c57044730945224467c09f71a4db0071c123a0648cc3e818913bde6b561"
+
+[[package]]
 name = "webby"
 version = "0.1.0"
 dependencies = [
  "base64",
  "boml",
+ "markdown",
 ]

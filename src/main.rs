@@ -76,7 +76,8 @@ pub fn main() -> Result<(), Cow<'static, str>> {
                     match file_type {
                         "html" => FileType::Html,
                         "css" => FileType::Css,
-                        "gemtext" => FileType::Gemtext,
+                        "gmi" | "gemtext" => FileType::Gemtext,
+                        "markdown" | "md" => FileType::Markdown,
                         _ => return Err(Cow::Owned(format!("Target `{path:?}` had an unexpected filetype: {file_type}\n`filetype` must be one of html, css, or gemtext")))
                     }
                 } else {
@@ -84,6 +85,7 @@ pub fn main() -> Result<(), Cow<'static, str>> {
                         Some("html") => FileType::Html,
                         Some("css") => FileType::Css,
                         Some("gmi") | Some("gemtext") => FileType::Gemtext,
+                        Some("md") | Some("markdown") => FileType::Markdown,
                         _ => FileType::Unknown,
                     }
                 };
