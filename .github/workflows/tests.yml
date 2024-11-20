@@ -9,7 +9,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Cargo Doc
-        run: cargo doc --features std
+        run: cargo doc
   Unit-Tests:
     runs-on: ubuntu-latest
     steps:
