@@ -1,10 +1,18 @@
 use {
     boml::{table::TomlGetError, Toml},
-    std::{borrow::Cow, env, fs, thread},
+    std::{
+        borrow::Cow,
+        env, fs,
+        path::Path,
+        thread::{self, JoinHandle},
+    },
     webby::{build_target, FileType, Mode, Target},
 };
 
-pub fn main() -> Result<(), Cow<'static, str>> {
+type ErrorMsg = Cow<'static, str>;
+type Tasks = Vec<JoinHandle<Result<(), ErrorMsg>>>;
+
+pub fn main() -> Result<(), ErrorMsg> {
     let cwd = env::current_dir().expect("Failed to find current directory");
     let mut root = cwd.as_path();
 
@@ -32,6 +40,18 @@ pub fn main() -> Result<(), Cow<'static, str>> {
     let cfg = fs::read_to_string(root.join("webby.toml")).expect("Failed to read webby.toml");
     let toml = Toml::parse(&cfg).unwrap();
 
+    let tasks = parse_cfg(toml, root)?;
+    for task in tasks {
+        match task.join().unwrap() {
+            Ok(()) => {}
+            Err(err) => println!("{err}"),
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_cfg(toml: Toml, root: &Path) -> Result<Tasks, ErrorMsg> {
     let output_dir = if let Ok(output) = toml.get_string("output") {
         root.join(output)
     } else {
@@ -39,7 +59,9 @@ pub fn main() -> Result<(), Cow<'static, str>> {
     };
 
     if !output_dir.exists() {
-        fs::create_dir(&output_dir).expect("Failed to create output directory");
+        let Ok(()) = fs::create_dir(&output_dir) else {
+            return Err("Failed to create output directory".into());
+        };
     }
 
     let mut tasks = Vec::default();
@@ -59,7 +81,9 @@ pub fn main() -> Result<(), Cow<'static, str>> {
                         "compile" => Mode::Compile,
                         "copy" => Mode::Copy,
                         "link" => Mode::Link,
-                        other => panic!("Unknown mode: {other} for target: {path:?}"),
+                        other => {
+                            return Err(format!("Unknown mode: {other} for target: {path:?}").into())
+                        }
                     }
                 } else {
                     match path.extension().and_then(|osstr| osstr.to_str()) {
@@ -74,12 +98,12 @@ pub fn main() -> Result<(), Cow<'static, str>> {
                 };
                 let file_type = if let Ok(file_type) = table.get_string("filetype") {
                     match file_type {
-                        "html" => FileType::Html,
-                        "css" => FileType::Css,
-                        "gmi" | "gemtext" => FileType::Gemtext,
-                        "markdown" | "md" => FileType::Markdown,
-                        _ => return Err(Cow::Owned(format!("Target `{path:?}` had an unexpected filetype: {file_type}\n`filetype` must be one of html, css, or gemtext")))
-                    }
+                    "html" => FileType::Html,
+                    "css" => FileType::Css,
+                    "gmi" | "gemtext" => FileType::Gemtext,
+                    "markdown" | "md" => FileType::Markdown,
+                    _ => return Err(format!("Target `{path:?}` had an unexpected filetype: {file_type}\n`filetype` must be one of html, css, or gemtext").into())
+                }
                 } else {
                     match path.extension().and_then(|str| str.to_str()) {
                         Some("html") => FileType::Html,
@@ -110,12 +134,5 @@ pub fn main() -> Result<(), Cow<'static, str>> {
         },
     }
 
-    for task in tasks {
-        match task.join().unwrap() {
-            Ok(()) => {}
-            Err(err) => println!("{err}"),
-        }
-    }
-
-    Ok(())
+    Ok(tasks)
 }
