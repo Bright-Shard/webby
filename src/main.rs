@@ -105,13 +105,7 @@ fn parse_cfg(toml: Toml, root: &Path) -> Result<Tasks, ErrorMsg> {
                     _ => return Err(format!("Target `{path:?}` had an unexpected filetype: {file_type}\n`filetype` must be one of html, css, or gemtext").into())
                 }
                 } else {
-                    match path.extension().and_then(|str| str.to_str()) {
-                        Some("html") => FileType::Html,
-                        Some("css") => FileType::Css,
-                        Some("gmi") | Some("gemtext") => FileType::Gemtext,
-                        Some("md") | Some("markdown") => FileType::Markdown,
-                        _ => FileType::Unknown,
-                    }
+                    FileType::from(path.as_path())
                 };
 
                 let target = Target {

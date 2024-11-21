@@ -76,7 +76,7 @@ fn handle_tag<'a>(
         .map(|char| char.is_whitespace())
         .unwrap_or(false)
     {
-        return Ok((Cow::Borrowed("<"), 1));
+        return Ok((Cow::Borrowed(""), 0));
     } else if source.starts_with("<!--") {
         let Some(ending) = source.find("-->") else {
             return Err(Cow::Owned(format!(
@@ -570,6 +570,11 @@ mod tests {
             Tester {
                 name: "Trim comments",
                 source: "<body><!--commentcomment--><p>hi</p></body>",
+                expected: "<body><p>hi</p></body>",
+            },
+            Tester {
+                name: "Trim start comments",
+                source: "<!--commentcomment-->\n<body><p>hi</p></body>",
                 expected: "<body><p>hi</p></body>",
             },
             Tester {

@@ -1,5 +1,5 @@
 use {
-    crate::{line_number_of_offset, minifier, Cow},
+    crate::{line_number_of_offset, minifier, Cow, FileType},
     base64::{engine::general_purpose::STANDARD, Engine},
     std::{fs, path::Path},
 };
@@ -68,7 +68,7 @@ pub fn compile_macros<'a>(original: &'a str, source_path: &'a Path) -> Result<Co
                         line_number_of_offset(original, offset)
                     )
                 });
-                let compiled = compile_macros(&src, &path)?;
+                let compiled = crate::compile_file(&src, &path, FileType::from(path.as_path()))?;
                 output += compiled.as_ref();
             }
             "BASE64" => {
